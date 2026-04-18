@@ -1,4 +1,4 @@
-# DormWake32 (WIP)
+# esp32-campus-wol (WIP)
 
 An ESP32-based Wake-on-LAN (WoL) controller designed to remotely wake up a PC in a dormitory environment over the campus network. 
 
