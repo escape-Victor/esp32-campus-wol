@@ -38,4 +38,4 @@ This project is built using [PlatformIO](https://platformio.org/).
 
 ## Hardware Setup
 
-![ESP32 Hardware Setup](PLACEHOLDER_FOR_YOUR_PHOTO_HERE)
+![ESP32 Hardware Setup](assets/Image_1776512593990_386_edit_126583210802803.jpg)
