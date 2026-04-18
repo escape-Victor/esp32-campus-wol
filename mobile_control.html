@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WOL远程控制</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f0f0f0; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; text-align: center; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .device { background: #e8f4fd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        button { background: #4CAF50; color: white; border: none; padding: 12px 20px; border-radius: 5px; width: 100%; cursor: pointer; }
+        button:disabled { background: #cccccc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ WOL远程控制</h1>
+        
+        <div id="status" class="status disconnected">
+            连接中...
+        </div>
+
+        <div id="devices">
+            <!-- 设备列表动态生成 -->
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button onclick="location.reload()">🔄 刷新页面</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let ngrokUrl = "https://overactive-debentured-jessenia.ngrok-free.dev"; // 改为您的Ngrok地址
+
+        function connect() {
+            console.log("连接至: " + ngrokUrl);
+            
+            try {
+                ws = new WebSocket(ngrokUrl);
+                
+                ws.onopen = function() {
+                    console.log("连接成功");
+                    document.getElementById('status').className = 'status connected';
+                    document.getElementById('status').innerHTML = '✅ 已连接到设备';
+                    
+                    // 请求设备列表
+                    ws.send(JSON.stringify({type: "get_devices"}));
+                };
+                
+                ws.onclose = function() {
+                    console.log("连接断开");
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').innerHTML = '❌ 连接断开，5秒后重连';
+                    setTimeout(connect, 5000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error("连接错误:", error);
+                    document.getElementById('status').className = 'status disconnected';
+                    document.getElementById('status').innerHTML = '❌ 连接错误';
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                };
+            } catch (error) {
+                console.error("连接异常:", error);
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').innerHTML = '❌ 连接异常';
+            }
+        }
+
+        function handleMessage(data) {
+            console.log("收到:", data);
+            
+            switch(data.type) {
+                case "welcome":
+                    console.log("连接成功:", data.message);
+                    break;
+                    
+                case "devices_list":
+                    updateDevices(data.devices);
+                    break;
+                    
+                case "wake_result":
+                    alert("唤醒 " + data.device + ": " + (data.success ? "成功" : "失败"));
+                    break;
+            }
+        }
+
+        function updateDevices(devices) {
+            const container = document.getElementById('devices');
+            container.innerHTML = '';
+            
+            devices.forEach(device => {
+                const div = document.createElement('div');
+                div.className = 'device';
+                div.innerHTML = `
+                    <strong>${device.name}</strong><br>
+                    MAC: ${device.mac}<br>
+                    <button onclick="wakeDevice(${device.id})">⚡ 唤醒设备</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function wakeDevice(deviceId) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert("未连接到设备");
+                return;
+            }
+            
+            ws.send(JSON.stringify({
+                type: "wake",
+                device_id: deviceId
+            }));
+            
+            alert("唤醒命令已发送");
+        }
+
+        // 页面加载时连接
+        connect();
+    </script>
+</body>
+</html>
